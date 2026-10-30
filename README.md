@@ -88,5 +88,4 @@ Python, OpenCV, NumPy, Pandas, scikit-learn, scikit-image, TensorFlow/Keras, Mat
 - `milestone2_solarguard_ai.ipynb`: Milestone 2 code (data, preprocessing, ML baselines, CNN from scratch)
 - `milestone2_experiments.ipynb`: CNN experiments (dropout, 3/4/5 blocks, 20 and 100 epochs)
 - `milestone3_final_comparison.ipynb`: Milestone 3 code (tuned Random Forest, transfer learning, ensemble, Gradio app)
-- `reports/`: milestone reports (PDF)
 - `README.md`: this file
