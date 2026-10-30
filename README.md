@@ -1,23 +1,27 @@
 # SolarGuard AI: Solar Panel Condition Classifier
 
-SolarGuard AI is our 5th semester integrated project for Machine Learning, Deep Learning and Computer Vision. It looks at a photo of a solar panel and tells us what condition it is in: clean, dusty, covered in snow, bird droppings, or damaged.
+SolarGuard AI is our 5th semester integrated project for Machine Learning, Deep Learning and Computer Vision. It looks at a photo of a solar panel and tells us what condition it is in: clean, dusty, covered in snow, bird droppings, electrical damage or physical damage.
 
 Solar power is growing fast in Pakistan, and checking panels by hand on a roof is slow and risky. Our goal is to make this check automatic.
 
 ## Team
 
-| Member | Area | Work in Milestone 2 |
-|---|---|---|
-| Sadia | Computer Vision | Data exploration, image preprocessing, train/validation/test split |
-| Sonia | Machine Learning | HOG and color features, Random Forest, SVM, KNN, evaluation |
-| Noor | Deep Learning | CNN built from scratch, training, learning curves |
+| Member | Area |
+|--------|------|
+| Noor   | Computer Vision |
+| Sonia  | Machine Learning |
+| Sadia  | Deep Learning |
+
+## Links
+
+- Colab notebook (Milestone 3, final comparison): https://colab.research.google.com/drive/1vdssafsEMqi8BQlHwlTPkwEFQCMMvCcR?usp=sharing
 
 ## Dataset
 
-We used the [Solar Panel Images dataset on Kaggle](https://www.kaggle.com/datasets/pythonafroz/solar-panel-images). It has 869 images in 6 classes.
+We use the [Solar Panel Images dataset on Kaggle](https://www.kaggle.com/datasets/pythonafroz/solar-panel-images): 869 images in 6 classes. The dataset is not uploaded here because it is large. Please download it from the link above.
 
 | Class | Images |
-|---|---|
+|-------|--------|
 | Bird-drop | 191 |
 | Clean | 193 |
 | Dusty | 190 |
@@ -25,64 +29,64 @@ We used the [Solar Panel Images dataset on Kaggle](https://www.kaggle.com/datase
 | Physical-Damage | 69 |
 | Snow-Covered | 123 |
 
-The dataset is not uploaded here because it is large. Please download it from the link above.
+The classes are not balanced, so we also look at precision, recall and macro-F1 and use class weights.
 
-Some classes (like Physical-Damage) have far fewer images than others, so we kept this in mind while training and judging the models.
+## Milestone 2: dataset, preprocessing and first models
 
-## What we did in Milestone 2
+- Explored the data, resized all images to 224 x 224 (RGB) and made a stratified 70/15/15 split.
+- Machine learning: HOG + HSV colour histogram features (2,276 per image) with Random Forest, SVM and KNN.
+- Deep learning: a CNN built from scratch (3 convolution blocks, dropout, flip and rotation augmentation).
+- Best result: Random Forest, 0.692 validation accuracy. CNN from scratch: 0.631.
 
-**1. Exploring the data**
-We counted the images in each class, plotted the class distribution, and looked at sample images. We also found 135 different image sizes, so every image needs to be resized.
+## Milestone 3: model improvement and working prototype
 
-**2. Preprocessing**
-All images were converted to RGB and resized to 224 x 224. We then split the data into 70% training (608 images), 15% validation (130 images) and 15% test (131 images). The split keeps the same class proportions in every part.
+What changed from Milestone 2, and why:
 
-**3. Machine Learning models**
-For every image we extracted HOG features (shape and edges) and an HSV color histogram, giving 2,276 features per image. We trained Random Forest, SVM and KNN on these features. Random Forest and SVM use balanced class weights to handle the uneven classes.
+| Area | Milestone 2 | Milestone 3 | Why |
+|------|-------------|-------------|-----|
+| Split | 70/15/15 | 70/20/10 (608 / 174 / 87) | Instructor feedback; larger validation set for choosing models |
+| Classical ML | Random Forest, SVM, KNN | Random Forest tuned (600 trees, balanced subsample) | Hand-made features cap these models near 0.69 |
+| CNN from scratch | One setup, 20 epochs | Dropout on/off, 3/4/5 blocks, 20 and 100 epochs | Best 0.713 test, but it overfits (train 0.99, val 0.65); 869 images are too few |
+| Transfer learning | Not used | MobileNetV2, EfficientNetB0, ResNet50 (frozen body, new top layer), early stopping, class weights | Pretrained networks already know edges and textures |
+| Selection | Compared on validation | Ranked on validation, test only reported | Avoids choosing a model on the test set |
+| Prototype | `predict_image(path)` | Gradio web app with suggested action | Easy to try for any user |
 
-**4. Deep Learning model**
-We built a CNN from scratch with three convolution and pooling blocks, dropout, and a softmax output. It also has random flip and rotation layers for basic augmentation. It was trained for 20 epochs on a Colab GPU.
+### Results
 
-**5. Working pipeline**
-The function `predict_image(path)` takes an image path, preprocesses the image, and returns the predicted class with a confidence score. On a test image of a clean panel, it predicted "Clean" with 96.5% confidence.
+| Model | Val acc | Test acc | Test macro-F1 |
+|-------|---------|----------|---------------|
+| **Ensemble of 3 CNNs (final model)** | 0.822 | 0.724 | 0.757 |
+| Ensemble of 3 CNNs + Random Forest | 0.816 | 0.713 | 0.732 |
+| ResNet50 | 0.805 | 0.690 | 0.712 |
+| MobileNetV2 | 0.759 | 0.678 | 0.698 |
+| Random Forest (tuned) | 0.690 | 0.724 | 0.720 |
+| EfficientNetB0 | 0.494 | 0.460 | 0.476 |
 
-## Results (validation set)
+The final model averages the probabilities of the three pretrained networks. Validation accuracy passed our 0.80 target (0.822), but test accuracy is 0.724. The test set has only 87 images, so the results are noisy.
 
-| Model | Accuracy | Macro F1 |
-|---|---|---|
-| Random Forest | 0.692 | 0.695 |
-| SVM | 0.585 | 0.595 |
-| KNN | 0.338 | 0.284 |
-| CNN (from scratch) | 0.631 | 0.582 |
+## Plan for Milestone 4
 
-Random Forest is our best model so far. The CNN does well on Snow-Covered panels but finds Electrical-damage and Physical-Damage harder, probably because there are fewer images of them.
-
-## Problems we faced
-
-- Images came in many different sizes and had to be resized to one size.
-- The classes are not balanced, so accuracy alone can be misleading. We also looked at precision, recall and F1 for each class.
-- The CNN trained from scratch on a small dataset does not reach very high accuracy.
-
-## Plan for Milestone 3
-
-- Transfer learning with a pretrained model (VGG16 or MobileNet)
-- Better data augmentation and hyperparameter tuning
-- Better handling of the small classes
-- Final evaluation on the test set
-- A Gradio web app where a user uploads a panel photo and gets the condition and a suggested action
+- Fix EfficientNetB0 (early stopping on validation accuracy) and re-test the ensemble
+- Stronger augmentation and more images for the small classes
+- Cross-validation for a less noisy estimate
+- Final report, final presentation, working demo and viva
 
 ## Tools used
 
-Python, OpenCV, NumPy, Pandas, scikit-learn, scikit-image, TensorFlow/Keras, Matplotlib, Seaborn, Google Colab
+Python, OpenCV, NumPy, Pandas, scikit-learn, scikit-image, TensorFlow/Keras, Matplotlib, Seaborn, Gradio, Google Colab (T4 GPU)
 
 ## How to run
 
-1. Download the dataset from Kaggle and keep it in a folder with one sub-folder per class.
-2. Open `milestone2_solarguard_ai.ipynb` in Google Colab.
-3. Change `ZIP_PATH` and `DATA_DIR` in the first cells to match where your dataset is saved.
-4. Run all cells from top to bottom.
+1. Download the dataset from Kaggle and upload the zip to your Google Drive.
+2. Open `milestone3_final_comparison.ipynb` in Google Colab (or use the Colab link above).
+3. Set the runtime to **T4 GPU** (Runtime > Change runtime type).
+4. Change `ZIP_PATH` in the first cells to the path of your zip file.
+5. Run all cells from top to bottom. The last cells start the Gradio app (its share link is temporary).
 
 ## Files in this repository
 
-- `milestone2_solarguard_ai.ipynb`: the full Milestone 2 code
+- `milestone2_solarguard_ai.ipynb`: Milestone 2 code (data, preprocessing, ML baselines, CNN from scratch)
+- `milestone2_experiments.ipynb`: CNN experiments (dropout, 3/4/5 blocks, 20 and 100 epochs)
+- `milestone3_final_comparison.ipynb`: Milestone 3 code (tuned Random Forest, transfer learning, ensemble, Gradio app)
+- `reports/`: milestone reports (PDF)
 - `README.md`: this file
